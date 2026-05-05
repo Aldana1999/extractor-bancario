@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extractor Bancario — Laboratorio de la Colonia</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--navy:#0D2240;--navy2:#1B3A6B;--blue:#1B5FAD;--text:#1a1a1a;--muted:#666;
+  --light:#f5f7fa;--border:#dde2eb;--white:#fff;--success:#15803d;
+  --warn:#b45309;--danger:#b91c1c;--yellow:#fef9c3;--r:10px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--light);color:var(--text);min-height:100vh;}
+.hdr{background:var(--navy);color:#fff;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;}
+.hdr-brand{font-size:16px;font-weight:600;display:flex;align-items:center;gap:10px;}
+.hdr-ico{width:28px;height:28px;background:var(--blue);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.hdr-sub{font-size:12px;color:rgba(255,255,255,.5);}
+.main{max-width:720px;margin:0 auto;padding:2rem 1.5rem 4rem;}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1.25rem;}
+.card-title{font-size:13px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem;}
+.pills{display:flex;gap:8px;flex-wrap:wrap;}
+.pill{padding:6px 14px;font-size:13px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;transition:all .15s;}
+.pill:hover:not(:disabled){border-color:var(--blue);color:var(--blue);}
+.pill.active{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:500;}
+.pill:disabled{color:#bbb;cursor:not-allowed;border-style:dashed;}
+.dz{border:2px dashed var(--border);border-radius:var(--r);padding:2.5rem 2rem;text-align:center;cursor:pointer;transition:all .15s;}
+.dz:hover,.dz.drag{border-color:var(--blue);background:#f0f6ff;}
+.dz.has{background:#f0f6ff;border-color:var(--blue);}
+.dz-ico{font-size:36px;margin-bottom:12px;}
+.dz-txt{font-size:15px;color:var(--muted);}
+.dz-hint{font-size:12px;color:#aaa;margin-top:6px;}
+.fname{font-size:15px;font-weight:500;color:var(--navy);}
+.fmeta{font-size:12px;color:var(--muted);margin-top:4px;}
+.btn{display:block;width:100%;padding:12px;font-size:15px;font-weight:500;border-radius:var(--r);border:none;cursor:pointer;transition:all .15s;}
+.btn-p{background:var(--navy);color:#fff;}.btn-p:hover{background:var(--navy2);}
+.btn-s{background:transparent;color:var(--muted);border:1px solid var(--border);font-size:14px;padding:10px;}.btn-s:hover{background:var(--light);}
+.btn-d{background:var(--success);color:#fff;font-size:16px;padding:14px;}.btn-d:hover{background:#166534;}
+.proc{text-align:center;padding:4rem 2rem;}
+.spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1.25rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.proc-lbl{font-size:15px;color:var(--navy);font-weight:500;}
+.proc-sub{font-size:13px;color:var(--muted);margin-top:6px;}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem;}
+.st{background:var(--light);border-radius:8px;padding:1rem 1.25rem;}
+.st-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;}
+.st-val{font-size:24px;font-weight:600;color:var(--navy);}
+.st-sub{font-size:12px;color:var(--muted);margin-top:4px;}
+.st-ok{font-size:12px;color:var(--success);margin-top:4px;}
+.st-warn{font-size:12px;color:var(--warn);margin-top:4px;}
+.chks{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:1.25rem;}
+.chk{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;}
+.chk:last-child{border-bottom:none;}
+.chk-ico{font-size:15px;flex-shrink:0;margin-top:1px;}
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.5;margin-bottom:1rem;}
+.a-warn{background:var(--yellow);color:var(--warn);border:1px solid #fde68a;}
+.a-err{background:#fee2e2;color:var(--danger);border:1px solid #fca5a5;}
+.a-ok{background:#dcfce7;color:var(--success);border:1px solid #86efac;}
+.gap{height:12px;}
+.footer{text-align:center;font-size:12px;color:#aaa;margin-top:3rem;}
+@media(max-width:500px){.sg{grid-template-columns:1fr;}.main{padding:1.25rem 1rem 3rem;}}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="hdr-brand"><div class="hdr-ico">$</div>Extractor Bancario</div>
+  <div class="hdr-sub">LABORATORIO DE LA COLONIA SAS</div>
+</header>
+<main class="main"><div id="app"></div></main>
+<div class="footer">Todo el procesamiento ocurre en tu navegador · Ningún dato sale de tu computadora</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ═══════════════════════════════════════════════════════════════
+//  PARSER BANCO PATAGONIA — basado en posición X/Y del PDF
+// ═══════════════════════════════════════════════════════════════
+
+function parseNum(s){
+  if(!s)return null;
+  var c=s.replace(/\./g,'').replace(',','.').replace(/[^\d.]/g,'');
+  var n=parseFloat(c);
+  return isNaN(n)?null:n;
+}
+
+function isAmount(s){
+  // Formato argentino: 1.234,56 o 1234,56 o 1.234.567,89
+  return /^\d{1,3}(\.\d{3})*,\d{2}$/.test(s)||/^\d+,\d{2}$/.test(s);
+}
+
+function isDate(s){return /^\d{1,2}\/\d{2}\/\d{2}$/.test(s);}
+
+function groupByY(items){
+  if(!items.length)return[];
+  var pts=items
+    .filter(function(i){return i.str&&i.str.trim();})
+    .map(function(i){return{text:i.str.trim(),x:i.transform[4],y:i.transform[5]};})
+    .sort(function(a,b){return b.y-a.y;});
+  var rows=[],cur=[pts[0]],refY=pts[0].y;
+  for(var i=1;i<pts.length;i++){
+    if(Math.abs(pts[i].y-refY)<=4){cur.push(pts[i]);}
+    else{rows.push(cur.slice().sort(function(a,b){return a.x-b.x;}));cur=[pts[i]];refY=pts[i].y;}
+  }
+  if(cur.length)rows.push(cur.sort(function(a,b){return a.x-b.x;}));
+  return rows;
+}
+
+function detectCols(row){
+  var D=null,C=null,S=null,R=null;
+  for(var i=0;i<row.length;i++){
+    if(row[i].text==='DEBITOS')D=row[i];
+    else if(row[i].text==='CREDITOS')C=row[i];
+    else if(row[i].text==='SALDO')S=row[i];
+    else if(row[i].text==='REFER.'||row[i].text==='REFER')R=row[i];
+  }
+  if(!D||!C)return null;
+  return{
+    referX:  R?R.x:(D.x-110),
+    debitoX: D.x,
+    creditoX:C.x,
+    saldoX:  S?S.x:(C.x+55),
+    dcBound: (D.x+C.x)/2,
+    csBound: S?(C.x+S.x)/2:(C.x+55),
+  };
+}
+
+function rowTxt(row){return row.map(function(i){return i.text;}).join(' ');}
+
+function parseMov(row,cols){
+  if(!row.length||!isDate(row[0].text))return null;
+  var fecha=row[0].text;
+  var dataStart=cols.debitoX-12;
+  var cParts=[],rParts=[],debito=null,credito=null,saldo_banco=null;
+
+  for(var i=1;i<row.length;i++){
+    var item=row[i];
+    if(!item.text)continue;
+    if(item.x<dataStart){
+      // Zona texto: CONCEPTO o REFER
+      if(item.x>=cols.referX&&/^\d{5,}$/.test(item.text)){
+        rParts.push(item.text); // número de referencia
+      } else {
+        cParts.push(item.text);
+      }
+    } else {
+      // Zona datos: DEBITO / CREDITO / SALDO
+      if(isAmount(item.text)){
+        var n=parseNum(item.text);
+        if(n!==null){
+          if(item.x<=cols.dcBound) debito=n;
+          else if(item.x<=cols.csBound) credito=n;
+          else saldo_banco=n;
+        }
+      } else if(/^\d{5,}$/.test(item.text)){
+        rParts.push(item.text);
+      }
+    }
+  }
+
+  var concepto=cParts.join(' ').trim();
+  var refer=rParts.join(' ').trim();
+  if(!concepto&&debito===null&&credito===null)return null;
+  return{fecha:fecha,concepto:concepto,refer:refer,debito:debito,credito:credito,saldo_banco:saldo_banco};
+}
+
+function rightmostAmount(row){
+  var nums=row.filter(function(i){return isAmount(i.text);});
+  if(!nums.length)return 0;
+  var r=nums.sort(function(a,b){return b.x-a.x;})[0];
+  return parseNum(r.text)||0;
+}
+
+async function parsePDF(file){
+  var buf=await file.arrayBuffer();
+  var pdf=await pdfjsLib.getDocument({data:buf}).promise;
+
+  var res={
+    cuenta_corriente:{nombre_cuenta:'CUENTA CORRIENTE EN PESOS',nro_cuenta:'',cbu:'',
+      saldo_anterior:{fecha:'',monto:0},movimientos:[],saldo_actual:0},
+    cta_cte_esp_pj:{nombre_cuenta:'CCTE ESP PJ S/I S PRI PESOS',nro_cuenta:'',cbu:'',
+      saldo_anterior:{fecha:'',monto:0},movimientos:[],saldo_actual:0}
+  };
+
+  var cols=null, acc=null;
+
+  for(var p=1;p<=pdf.numPages;p++){
+    var page=await pdf.getPage(p);
+    var content=await page.getTextContent();
+    var rows=groupByY(content.items);
+
+    for(var ri=0;ri<rows.length;ri++){
+      var row=rows[ri];
+      var rt=rowTxt(row);
+
+      // ── Cabecera CUENTA CORRIENTE ──
+      if(rt.indexOf('CUENTA CORRIENTE EN PESOS')>=0&&rt.indexOf('SUBCTA')>=0){
+        acc='cc'; cols=null;
+        var nm=rt.match(/(\d{9,10})\s+SUBCTA/);
+        var cb=rt.match(/CBU:\s*([\d\s]+)/);
+        if(nm)res.cuenta_corriente.nro_cuenta=nm[1]+' SUBCTA 0 SUC 336';
+        if(cb)res.cuenta_corriente.cbu=cb[1].replace(/\s+/g,'').replace(/^(\d{8})(\d+)$/,'$1 $2');
+        continue;
+      }
+
+      // ── Cabecera CTA CTE ESP ──
+      if((rt.indexOf('CCTE ESP PJ')>=0||rt.indexOf('CTA CTE ESP')>=0)&&rt.indexOf('SUBCTA')>=0){
+        acc='esp'; cols=null;
+        var nm2=rt.match(/(\d{9,10})\s+SUBCTA/);
+        var cb2=rt.match(/CBU:\s*([\d\s]+)/);
+        if(nm2)res.cta_cte_esp_pj.nro_cuenta=nm2[1]+' SUBCTA 0 SUC 336';
+        if(cb2)res.cta_cte_esp_pj.cbu=cb2[1].replace(/\s+/g,'').replace(/^(\d{8})(\d+)$/,'$1 $2');
+        continue;
+      }
+
+      // ── Fila de columnas → detectar posiciones ──
+      if(rt.indexOf('DEBITOS')>=0&&rt.indexOf('CREDITOS')>=0){
+        var c=detectCols(row);
+        if(c)cols=c;
+        continue;
+      }
+
+      if(!acc||!cols)continue;
+      var target=acc==='cc'?res.cuenta_corriente:res.cta_cte_esp_pj;
+
+      // ── SALDO ANTERIOR ──
+      if(rt.replace(/\s+/g,' ').indexOf('SALDO ANTERIOR')>=0){
+        var di=row.find(function(i){return isDate(i.text);});
+        if(di)target.saldo_anterior.fecha=di.text;
+        target.saldo_anterior.monto=rightmostAmount(row);
+        continue;
+      }
+
+      // ── SALDO ACTUAL ──
+      if(rt.replace(/\s+/g,' ').indexOf('SALDO ACTUAL')>=0){
+        target.saldo_actual=rightmostAmount(row);
+        continue;
+      }
+
+      // ── Movimiento ──
+      if(row.length&&isDate(row[0].text)){
+        var m=parseMov(row,cols);
+        if(m)target.movimientos.push(m);
+      }
+    }
+  }
+  return res;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GENERADOR EXCEL
+// ═══════════════════════════════════════════════════════════════
+
+function genExcel(result){
+  var wb=XLSX.utils.book_new(),FMT='#,##0.00';
+  function sheet(acc){
+    if(!acc)return null;
+    var ws={},r=0;
+    var cell=function(row,col,val,s,fmt){
+      if(val===null||val===undefined)return;
+      var ref=XLSX.utils.encode_cell({r:row,c:col});
+      ws[ref]={v:val,t:typeof val==='number'?'n':'s'};
+      if(fmt)ws[ref].z=fmt; if(s)ws[ref].s=s;
+    };
+    var NH={fill:{patternType:'solid',fgColor:{rgb:'0D2240'}},font:{bold:true,color:{rgb:'FFFFFF'},sz:12}};
+    var BH={fill:{patternType:'solid',fgColor:{rgb:'1B5FAD'}},font:{bold:true,color:{rgb:'FFFFFF'}}};
+    var BO={font:{bold:true}};
+    var MU={font:{italic:true,color:{rgb:'888888'}}};
+    var YE={fill:{patternType:'solid',fgColor:{rgb:'FFFF00'}}};
+    var YB={fill:{patternType:'solid',fgColor:{rgb:'FFFF00'}},font:{bold:true}};
+
+    cell(r,0,acc.nombre_cuenta,NH);r++;
+    cell(r,0,'N° Cuenta:',BO);cell(r,1,acc.nro_cuenta);r++;
+    cell(r,0,'CBU:',BO);cell(r,1,acc.cbu);r++;r++;
+    cell(r,0,'SALDO ANTERIOR:',BO);
+    cell(r,1,acc.saldo_anterior.fecha,MU);
+    cell(r,5,acc.saldo_anterior.monto,BO,FMT);r++;r++;
+    ['FECHA','CONCEPTO','REFER.','DÉBITOS','CRÉDITOS','SALDO'].forEach(function(h,c){cell(r,c,h,BH);});r++;
+
+    var saldo=acc.saldo_anterior.monto||0;
+    acc.movimientos.forEach(function(m){
+      saldo=Math.round((saldo-(m.debito||0)+(m.credito||0))*100)/100;
+      var disc=m.saldo_banco!=null&&Math.abs(m.saldo_banco-saldo)>0.02;
+      var s=disc?YE:null;
+      cell(r,0,m.fecha,s);cell(r,1,m.concepto,s);cell(r,2,m.refer||'',s);
+      if(m.debito!=null)cell(r,3,m.debito,s,FMT);
+      if(m.credito!=null)cell(r,4,m.credito,s,FMT);
+      cell(r,5,saldo,s,FMT);r++;
+    });r++;
+    var dF=Math.abs((acc.saldo_actual||0)-saldo)>0.02;
+    cell(r,0,'SALDO ACTUAL:',dF?YB:BO);cell(r,5,acc.saldo_actual,dF?YB:BO,FMT);
+    ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r,c:5}});
+    ws['!cols']=[{wch:12},{wch:46},{wch:14},{wch:18},{wch:18},{wch:20}];
+    return ws;
+  }
+  var ws1=sheet(result.cuenta_corriente);
+  if(ws1)XLSX.utils.book_append_sheet(wb,ws1,'CUENTA CORRIENTE');
+  var ws2=sheet(result.cta_cte_esp_pj);
+  if(ws2)XLSX.utils.book_append_sheet(wb,ws2,'CTA CTE ESP P/PJ');
+  XLSX.writeFile(wb,'Patagonia_'+new Date().toISOString().slice(0,10)+'.xlsx',{cellStyles:true});
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UI
+// ═══════════════════════════════════════════════════════════════
+
+var BANKS=[
+  {id:'patagonia',name:'Patagonia / Francés',ready:true},
+  {id:'nacion',name:'Banco Nación',ready:false},
+  {id:'galicia',name:'Banco Galicia',ready:false},
+  {id:'santander',name:'Santander Río',ready:false},
+  {id:'superv',name:'Supervielle',ready:false},
+  {id:'provincia',name:'Banco Provincia',ready:false},
+  {id:'macro',name:'Banco Macro',ready:false},
+];
+
+var S={bank:'patagonia',phase:'upload',file:null,result:null,error:'',status:'',drag:false};
+
+function fmtARS(n){return(n||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+function calcDisc(acc){
+  if(!acc)return 0;
+  var s=acc.saldo_anterior.monto||0,c=0;
+  acc.movimientos.forEach(function(m){
+    s=Math.round((s-(m.debito||0)+(m.credito||0))*100)/100;
+    if(m.saldo_banco!=null&&Math.abs(m.saldo_banco-s)>0.02)c++;
+  });
+  return c;
+}
+function calcFinal(acc){
+  if(!acc)return 0;
+  var s=acc.saldo_anterior.monto||0;
+  acc.movimientos.forEach(function(m){s=Math.round((s-(m.debito||0)+(m.credito||0))*100)/100;});
+  return s;
+}
+
+function render(){
+  var app=document.getElementById('app');if(!app)return;
+  var cc=S.result&&S.result.cuenta_corriente;
+  var esp=S.result&&S.result.cta_cte_esp_pj;
+  var dCC=calcDisc(cc),dE=calcDisc(esp);
+  var fCC=calcFinal(cc),fE=calcFinal(esp);
+  var h='';
+
+  // Banco pills
+  h+='<div class="card"><div class="card-title">Banco</div><div class="pills">';
+  BANKS.forEach(function(b){
+    var cls='pill'+(b.id===S.bank?' active':'');
+    var lbl=b.ready?b.name:b.name+' <small style="font-size:10px;opacity:.6">(próx.)</small>';
+    h+='<button class="'+cls+'" '+(b.ready?'onclick="selBank(\''+b.id+'\')"':'disabled')+'>'+lbl+'</button>';
+  });
+  h+='</div></div>';
+
+  // Upload
+  if(S.phase==='upload'||S.phase==='error'){
+    var hf=!!S.file;
+    h+='<div class="card"><div class="card-title">Archivo PDF</div>';
+    h+='<div class="dz'+(hf?' has':'')+(S.drag?' drag':'')+'" id="dz" onclick="trigFile()">';
+    h+='<div class="dz-ico">'+(hf?'✅':'📄')+'</div>';
+    if(hf)h+='<p class="fname">'+S.file.name+'</p><p class="fmeta">'+Math.round(S.file.size/1024)+' KB · Hacé clic para cambiar</p>';
+    else h+='<p class="dz-txt">Arrastrá tu PDF acá o hacé clic para seleccionar</p><p class="dz-hint">Solo archivos PDF del resumen bancario</p>';
+    h+='</div></div>';
+    if(S.phase==='error')h+='<div class="alert a-err">❌ '+S.error+'</div>';
+    if(hf)h+='<button class="btn btn-p" onclick="procesar()">Procesar PDF →</button>';
+  }
+
+  // Processing
+  if(S.phase==='processing'){
+    h+='<div class="card"><div class="proc"><div class="spin"></div>';
+    h+='<p class="proc-lbl">'+S.status+'</p>';
+    h+='<p class="proc-sub">Procesando completamente en tu navegador, sin enviar datos a ningún servidor</p>';
+    h+='</div></div>';
+  }
+
+  // Done
+  if(S.phase==='done'&&S.result){
+    h+='<div class="sg">';
+    h+=stCard('Cuenta Corriente',cc.movimientos.length,cc.saldo_actual,dCC);
+    h+=stCard('CTA CTE ESP P/PJ',esp.movimientos.length,esp.saldo_actual,dE);
+    h+='</div>';
+    h+='<div class="chks">'+chkRow(cc,'Cuenta Corriente',fCC)+chkRow(esp,'CTA CTE ESP P/PJ',fE)+'</div>';
+    var hasDisc=dCC>0||dE>0;
+    if(hasDisc)h+='<div class="alert a-warn">⚠ Hay discrepancias entre el saldo calculado y el del banco. Las filas afectadas están en <strong>amarillo</strong> en el Excel.</div>';
+    else h+='<div class="alert a-ok">✓ Todos los saldos cuadran perfectamente.</div>';
+    h+='<button class="btn btn-d" onclick="descargar()">⬇ Descargar Excel</button>';
+    h+='<div class="gap"></div><button class="btn btn-s" onclick="reset()">Procesar otro PDF</button>';
+  }
+
+  app.innerHTML=h; attachDZ();
+}
+
+function stCard(lbl,movs,saldo,disc){
+  var w=disc>0?'<p class="st-warn">⚠ '+disc+' discrepancia'+(disc>1?'s':'')+'</p>':'<p class="st-ok">✓ Sin discrepancias</p>';
+  return'<div class="st"><p class="st-lbl">'+lbl+'</p><p class="st-val">'+movs+' <span style="font-size:14px;font-weight:400;color:var(--muted)">mov.</span></p><p class="st-sub">Saldo: $'+fmtARS(saldo)+'</p>'+w+'</div>';
+}
+function chkRow(acc,lbl,calc){
+  if(!acc)return'';
+  var actual=acc.saldo_actual||0,ok=Math.abs(actual-calc)<=0.02;
+  var txt=ok?lbl+': saldo calculado = saldo actual <span style="color:var(--muted)">($'+fmtARS(actual)+')</span>':lbl+': calculado $'+fmtARS(calc)+' ≠ banco $'+fmtARS(actual)+' — <strong>diferencia $'+fmtARS(Math.abs(actual-calc))+'</strong>';
+  return'<div class="chk"><span class="chk-ico">'+(ok?'✅':'⚠️')+'</span><span>'+txt+'</span></div>';
+}
+
+async function procesar(){
+  if(!S.file)return;
+  S.phase='processing'; S.status='Leyendo el PDF...'; render();
+  try{
+    S.status='Extrayendo movimientos...'; render();
+    var result=await parsePDF(S.file);
+    var cc=result.cuenta_corriente,esp=result.cta_cte_esp_pj;
+    if(!cc.movimientos.length&&!esp.movimientos.length)
+      throw new Error('No se encontraron movimientos. Verificá que el PDF sea del Banco Patagonia.');
+    S.result=result; S.phase='done';
+  }catch(e){S.error=e.message;S.phase='error';}
+  render();
+}
+
+var fi=null;
+function trigFile(){
+  if(!fi){fi=document.createElement('input');fi.type='file';fi.accept='.pdf';
+    fi.onchange=function(e){var f=e.target.files[0];if(f&&f.type==='application/pdf'){S.file=f;S.phase='upload';render();}};}
+  fi.click();
+}
+function attachDZ(){
+  var dz=document.getElementById('dz');if(!dz)return;
+  dz.addEventListener('dragover',function(e){e.preventDefault();S.drag=true;render();});
+  dz.addEventListener('dragleave',function(){S.drag=false;render();});
+  dz.addEventListener('drop',function(e){e.preventDefault();S.drag=false;var f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf'){S.file=f;render();}});
+}
+window.selBank=function(id){S.bank=id;render();};
+window.procesar=procesar;
+window.descargar=function(){genExcel(S.result);};
+window.reset=function(){S.phase='upload';S.file=null;S.result=null;S.error='';render();};
+render();
+</script>
+</body>
+</html>
