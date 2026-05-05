@@ -3,505 +3,432 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Extractor Bancario</title>
+<title>Extractor Bancario — Laboratorio de la Colonia</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  :root {
-    --navy:    #0D2240;
-    --navy2:   #1B3A6B;
-    --blue:    #1B5FAD;
-    --text:    #1a1a1a;
-    --muted:   #666;
-    --light:   #f5f7fa;
-    --border:  #dde2eb;
-    --white:   #ffffff;
-    --success: #1a7a4a;
-    --warn:    #b45309;
-    --danger:  #b91c1c;
-    --yellow:  #fef9c3;
-    --yellow-b:#ca8a04;
-    --radius:  10px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--light); color: var(--text); min-height: 100vh; }
-
-  /* HEADER */
-  .header { background: var(--navy); color: #fff; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 56px; }
-  .header-brand { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; display: flex; align-items: center; gap: 10px; }
-  .header-brand-icon { width: 28px; height: 28px; background: var(--blue); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-  .header-sub { font-size: 12px; color: rgba(255,255,255,0.5); }
-
-  /* LAYOUT */
-  .main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
-
-  /* CARD */
-  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.25rem; }
-  .card-title { font-size: 13px; font-weight: 600; color: var(--navy); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; }
-
-  /* BANK PILLS */
-  .pills { display: flex; gap: 8px; flex-wrap: wrap; }
-  .pill { padding: 6px 14px; font-size: 13px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; transition: all 0.15s; font-weight: 400; }
-  .pill:hover:not(.pill-disabled) { border-color: var(--blue); color: var(--blue); }
-  .pill.active { background: var(--navy); border-color: var(--navy); color: #fff; font-weight: 500; }
-  .pill.pill-disabled { color: #bbb; cursor: not-allowed; border-style: dashed; }
-
-  /* DROP ZONE */
-  .dropzone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: all 0.15s; }
-  .dropzone:hover, .dropzone.drag { border-color: var(--blue); background: #f0f6ff; }
-  .dropzone-icon { font-size: 36px; margin-bottom: 12px; }
-  .dropzone-text { font-size: 15px; color: var(--muted); }
-  .dropzone-hint { font-size: 12px; color: #aaa; margin-top: 6px; }
-  .file-selected { background: #f0f6ff; border-color: var(--blue); }
-  .file-name { font-size: 15px; font-weight: 500; color: var(--navy); }
-  .file-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
-
-  /* BUTTONS */
-  .btn { display: block; width: 100%; padding: 12px; font-size: 15px; font-weight: 500; border-radius: var(--radius); border: none; cursor: pointer; transition: all 0.15s; }
-  .btn-primary { background: var(--navy); color: #fff; }
-  .btn-primary:hover { background: var(--navy2); }
-  .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
-  .btn-secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); font-size: 14px; padding: 10px; }
-  .btn-secondary:hover { background: var(--light); }
-  .btn-download { background: #15803d; color: #fff; font-size: 16px; padding: 14px; }
-  .btn-download:hover { background: #166534; }
-  .btn-download:disabled { background: #ccc; cursor: not-allowed; }
-
-  /* PROCESSING */
-  .processing { text-align: center; padding: 4rem 2rem; }
-  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1.25rem; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .proc-label { font-size: 15px; color: var(--navy); font-weight: 500; }
-  .proc-sub { font-size: 13px; color: var(--muted); margin-top: 6px; }
-
-  /* STATS */
-  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
-  .stat { background: var(--light); border-radius: 8px; padding: 1rem 1.25rem; }
-  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
-  .stat-val { font-size: 24px; font-weight: 600; color: var(--navy); }
-  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .stat-ok  { font-size: 12px; color: var(--success); margin-top: 4px; }
-  .stat-warn { font-size: 12px; color: var(--warn); margin-top: 4px; }
-
-  /* CHECKS */
-  .checks { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 1.25rem; }
-  .check-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
-  .check-row:last-child { border-bottom: none; }
-  .check-ico { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
-  .check-text { color: var(--text); line-height: 1.4; }
-  .check-text span { color: var(--muted); }
-
-  /* ALERTS */
-  .alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.5; margin-bottom: 1rem; }
-  .alert-warn { background: var(--yellow); color: var(--yellow-b); border: 1px solid #fde68a; }
-  .alert-err  { background: #fee2e2; color: var(--danger); border: 1px solid #fca5a5; }
-  .alert-ok   { background: #dcfce7; color: var(--success); border: 1px solid #86efac; }
-
-  /* GAP */
-  .gap { height: 12px; }
-
-  /* FOOTER */
-  .footer { text-align: center; font-size: 12px; color: #aaa; margin-top: 3rem; }
-
-  @media (max-width: 500px) {
-    .stats-grid { grid-template-columns: 1fr; }
-    .main { padding: 1.25rem 1rem 3rem; }
-  }
+:root{--navy:#0D2240;--navy2:#1B3A6B;--blue:#1B5FAD;--text:#1a1a1a;--muted:#666;
+  --light:#f5f7fa;--border:#dde2eb;--white:#fff;--success:#15803d;
+  --warn:#b45309;--danger:#b91c1c;--yellow:#fef9c3;--r:10px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--light);color:var(--text);min-height:100vh;}
+.hdr{background:var(--navy);color:#fff;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;}
+.hdr-brand{font-size:16px;font-weight:600;display:flex;align-items:center;gap:10px;}
+.hdr-ico{width:28px;height:28px;background:var(--blue);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.hdr-sub{font-size:12px;color:rgba(255,255,255,.5);}
+.main{max-width:720px;margin:0 auto;padding:2rem 1.5rem 4rem;}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1.25rem;}
+.card-title{font-size:13px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem;}
+.pills{display:flex;gap:8px;flex-wrap:wrap;}
+.pill{padding:6px 14px;font-size:13px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;transition:all .15s;}
+.pill:hover:not(:disabled){border-color:var(--blue);color:var(--blue);}
+.pill.active{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:500;}
+.pill:disabled{color:#bbb;cursor:not-allowed;border-style:dashed;}
+.dz{border:2px dashed var(--border);border-radius:var(--r);padding:2.5rem 2rem;text-align:center;cursor:pointer;transition:all .15s;}
+.dz:hover,.dz.drag{border-color:var(--blue);background:#f0f6ff;}
+.dz.has{background:#f0f6ff;border-color:var(--blue);}
+.dz-ico{font-size:36px;margin-bottom:12px;}
+.dz-txt{font-size:15px;color:var(--muted);}
+.dz-hint{font-size:12px;color:#aaa;margin-top:6px;}
+.fname{font-size:15px;font-weight:500;color:var(--navy);}
+.fmeta{font-size:12px;color:var(--muted);margin-top:4px;}
+.btn{display:block;width:100%;padding:12px;font-size:15px;font-weight:500;border-radius:var(--r);border:none;cursor:pointer;transition:all .15s;}
+.btn-p{background:var(--navy);color:#fff;}.btn-p:hover{background:var(--navy2);}
+.btn-s{background:transparent;color:var(--muted);border:1px solid var(--border);font-size:14px;padding:10px;}.btn-s:hover{background:var(--light);}
+.btn-d{background:var(--success);color:#fff;font-size:16px;padding:14px;}.btn-d:hover{background:#166534;}
+.proc{text-align:center;padding:4rem 2rem;}
+.spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1.25rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.proc-lbl{font-size:15px;color:var(--navy);font-weight:500;}
+.proc-sub{font-size:13px;color:var(--muted);margin-top:6px;}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem;}
+.st{background:var(--light);border-radius:8px;padding:1rem 1.25rem;}
+.st-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;}
+.st-val{font-size:24px;font-weight:600;color:var(--navy);}
+.st-sub{font-size:12px;color:var(--muted);margin-top:4px;}
+.st-ok{font-size:12px;color:var(--success);margin-top:4px;}
+.st-warn{font-size:12px;color:var(--warn);margin-top:4px;}
+.chks{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:1.25rem;}
+.chk{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;}
+.chk:last-child{border-bottom:none;}
+.chk-ico{font-size:15px;flex-shrink:0;margin-top:1px;}
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.5;margin-bottom:1rem;}
+.a-warn{background:var(--yellow);color:var(--warn);border:1px solid #fde68a;}
+.a-err{background:#fee2e2;color:var(--danger);border:1px solid #fca5a5;}
+.a-ok{background:#dcfce7;color:var(--success);border:1px solid #86efac;}
+.gap{height:12px;}
+.footer{text-align:center;font-size:12px;color:#aaa;margin-top:3rem;}
+@media(max-width:500px){.sg{grid-template-columns:1fr;}.main{padding:1.25rem 1rem 3rem;}}
 </style>
 </head>
 <body>
-
-<header class="header">
-  <div class="header-brand">
-    <div class="header-brand-icon">$</div>
-    Extractor Bancario
-  </div>
-  <div class="header-sub">LABORATORIO DE LA COLONIA SAS</div>
+<header class="hdr">
+  <div class="hdr-brand"><div class="hdr-ico">$</div>Extractor Bancario</div>
+  <div class="hdr-sub">LABORATORIO DE LA COLONIA SAS</div>
 </header>
-
-<main class="main">
-  <div id="app"></div>
-</main>
-
-<div class="footer">Uso interno · Los archivos se procesan de forma privada y no se almacenan en ningún servidor</div>
+<main class="main"><div id="app"></div></main>
+<div class="footer">Todo el procesamiento ocurre en tu navegador · Ningún dato sale de tu computadora</div>
 
 <script>
-// ─── SYSTEM PROMPTS POR BANCO ──────────────────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-const PROMPTS = {
-  patagonia: `Sos un asistente especializado en parsing de resúmenes bancarios argentinos del Banco Patagonia (también conocido como Banco Francés).
+// ═══════════════════════════════════════════════════════════════
+//  PARSER BANCO PATAGONIA — basado en posición X/Y del PDF
+// ═══════════════════════════════════════════════════════════════
 
-Analizá el PDF adjunto y extraé los movimientos de DOS cuentas bancarias que aparecen en el documento.
+function parseNum(s){
+  if(!s)return null;
+  var c=s.replace(/\./g,'').replace(',','.').replace(/[^\d.]/g,'');
+  var n=parseFloat(c);
+  return isNaN(n)?null:n;
+}
 
-FORMATO DE NÚMEROS: El PDF usa punto como separador de miles y coma como decimal (ej: 2.510.878,17). En el JSON de salida, devolvé números JavaScript con punto decimal y SIN separador de miles (ej: 2510878.17).
+function isAmount(s){
+  // Formato argentino: 1.234,56 o 1234,56 o 1.234.567,89
+  return /^\d{1,3}(\.\d{3})*,\d{2}$/.test(s)||/^\d+,\d{2}$/.test(s);
+}
 
-Devolvé ÚNICAMENTE un JSON válido con la siguiente estructura exacta (sin texto adicional, sin markdown, sin backticks):
+function isDate(s){return /^\d{1,2}\/\d{2}\/\d{2}$/.test(s);}
 
-{
-  "cuenta_corriente": {
-    "nombre_cuenta": "CUENTA CORRIENTE EN PESOS",
-    "nro_cuenta": "336016019 SUBCTA 0 SUC 336",
-    "cbu": "03403363 00336016019003",
-    "saldo_anterior": { "fecha": "30/12/25", "monto": 2396583.84 },
-    "movimientos": [
-      { "fecha": "02/01/26", "concepto": "SOLICITUD ECHEQS", "refer": "", "debito": 1050.00, "credito": null, "saldo_banco": null }
-    ],
-    "saldo_actual": 2510878.17
-  },
-  "cta_cte_esp_pj": {
-    "nombre_cuenta": "CCTE ESP PJ S/I S PRI PESOS",
-    "nro_cuenta": "336016019 SUBCTA 0 SUC 336",
-    "cbu": "03403363 08336016019001",
-    "saldo_anterior": { "fecha": "30/12/25", "monto": 3440.00 },
-    "movimientos": [
-      { "fecha": "09/01/26", "concepto": "IMP.DB/CR BANCARIOS P/DEBITOS", "refer": "", "debito": 251.75, "credito": null, "saldo_banco": null }
-    ],
-    "saldo_actual": 239760.26
+function groupByY(items){
+  if(!items.length)return[];
+  var pts=items
+    .filter(function(i){return i.str&&i.str.trim();})
+    .map(function(i){return{text:i.str.trim(),x:i.transform[4],y:i.transform[5]};})
+    .sort(function(a,b){return b.y-a.y;});
+  var rows=[],cur=[pts[0]],refY=pts[0].y;
+  for(var i=1;i<pts.length;i++){
+    if(Math.abs(pts[i].y-refY)<=4){cur.push(pts[i]);}
+    else{rows.push(cur.slice().sort(function(a,b){return a.x-b.x;}));cur=[pts[i]];refY=pts[i].y;}
   }
+  if(cur.length)rows.push(cur.sort(function(a,b){return a.x-b.x;}));
+  return rows;
 }
 
-REGLAS CRÍTICAS:
-1. Incluí ABSOLUTAMENTE TODOS los movimientos de CADA cuenta, en el orden exacto del PDF.
-2. Observá la posición horizontal del monto para determinar columna: si está bajo DEBITOS → debito: monto, credito: null. Si está bajo CREDITOS → debito: null, credito: monto.
-3. saldo_banco: solo cuando el PDF muestra explícitamente el saldo en esa fila. Si no aparece → saldo_banco: null.
-4. refer: string vacío "" si no hay referencia.
-5. NO incluyas SALDO ANTERIOR ni SALDO ACTUAL como movimientos del array.
-6. CUENTA CORRIENTE EN PESOS: páginas 1 a 6. CTA CTE ESP P/PJ (CCTE ESP PJ): página 7.
-7. Ignorá: transferencias recibidas/enviadas, compras Patagonia 24, situación impositiva, avisos legales.`
-};
-
-// ─── BANKS ─────────────────────────────────────────────────────────────────
-
-const BANKS = [
-  { id:'patagonia', name:'Patagonia / Francés', ready:true },
-  { id:'nacion',    name:'Banco Nación',         ready:false },
-  { id:'galicia',   name:'Banco Galicia',        ready:false },
-  { id:'santander', name:'Santander Río',        ready:false },
-  { id:'superv',    name:'Supervielle',          ready:false },
-  { id:'provincia', name:'Banco Provincia',      ready:false },
-  { id:'macro',     name:'Banco Macro',          ready:false },
-];
-
-// ─── STATE ──────────────────────────────────────────────────────────────────
-
-const S = {
-  bank:    'patagonia',
-  phase:   'upload',   // upload | processing | done | error
-  file:    null,
-  result:  null,
-  error:   '',
-  status:  '',
-  dragging:false,
-};
-
-// ─── HELPERS ────────────────────────────────────────────────────────────────
-
-const fmtARS = n =>
-  (n ?? 0).toLocaleString('es-AR', { minimumFractionDigits:2, maximumFractionDigits:2 });
-
-function calcDisc(account) {
-  if (!account) return 0;
-  let saldo = account.saldo_anterior?.monto ?? 0;
-  let count = 0;
-  (account.movimientos || []).forEach(m => {
-    saldo = Math.round((saldo - (m.debito||0) + (m.credito||0)) * 100) / 100;
-    if (m.saldo_banco != null && Math.abs(m.saldo_banco - saldo) > 0.02) count++;
-  });
-  return count;
+function detectCols(row){
+  var D=null,C=null,S=null,R=null;
+  for(var i=0;i<row.length;i++){
+    if(row[i].text==='DEBITOS')D=row[i];
+    else if(row[i].text==='CREDITOS')C=row[i];
+    else if(row[i].text==='SALDO')S=row[i];
+    else if(row[i].text==='REFER.'||row[i].text==='REFER')R=row[i];
+  }
+  if(!D||!C)return null;
+  return{
+    referX:  R?R.x:(D.x-110),
+    debitoX: D.x,
+    creditoX:C.x,
+    saldoX:  S?S.x:(C.x+55),
+    dcBound: (D.x+C.x)/2,
+    csBound: S?(C.x+S.x)/2:(C.x+55),
+  };
 }
 
-function calcFinalSaldo(account) {
-  if (!account) return 0;
-  let saldo = account.saldo_anterior?.monto ?? 0;
-  (account.movimientos || []).forEach(m => {
-    saldo = Math.round((saldo - (m.debito||0) + (m.credito||0)) * 100) / 100;
-  });
-  return saldo;
+function rowTxt(row){return row.map(function(i){return i.text;}).join(' ');}
+
+function parseMov(row,cols){
+  if(!row.length||!isDate(row[0].text))return null;
+  var fecha=row[0].text;
+  var dataStart=cols.debitoX-12;
+  var cParts=[],rParts=[],debito=null,credito=null,saldo_banco=null;
+
+  for(var i=1;i<row.length;i++){
+    var item=row[i];
+    if(!item.text)continue;
+    if(item.x<dataStart){
+      // Zona texto: CONCEPTO o REFER
+      if(item.x>=cols.referX&&/^\d{5,}$/.test(item.text)){
+        rParts.push(item.text); // número de referencia
+      } else {
+        cParts.push(item.text);
+      }
+    } else {
+      // Zona datos: DEBITO / CREDITO / SALDO
+      if(isAmount(item.text)){
+        var n=parseNum(item.text);
+        if(n!==null){
+          if(item.x<=cols.dcBound) debito=n;
+          else if(item.x<=cols.csBound) credito=n;
+          else saldo_banco=n;
+        }
+      } else if(/^\d{5,}$/.test(item.text)){
+        rParts.push(item.text);
+      }
+    }
+  }
+
+  var concepto=cParts.join(' ').trim();
+  var refer=rParts.join(' ').trim();
+  if(!concepto&&debito===null&&credito===null)return null;
+  return{fecha:fecha,concepto:concepto,refer:refer,debito:debito,credito:credito,saldo_banco:saldo_banco};
 }
 
-function toBase64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload  = () => res(r.result.split(',')[1]);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
+function rightmostAmount(row){
+  var nums=row.filter(function(i){return isAmount(i.text);});
+  if(!nums.length)return 0;
+  var r=nums.sort(function(a,b){return b.x-a.x;})[0];
+  return parseNum(r.text)||0;
 }
 
-// ─── EXCEL GENERATION ───────────────────────────────────────────────────────
+async function parsePDF(file){
+  var buf=await file.arrayBuffer();
+  var pdf=await pdfjsLib.getDocument({data:buf}).promise;
 
-function generateExcel() {
-  if (!S.result || !window.XLSX) return;
-  const XLSX = window.XLSX;
-  const wb   = XLSX.utils.book_new();
-  const FMT  = '#,##0.00';
+  var res={
+    cuenta_corriente:{nombre_cuenta:'CUENTA CORRIENTE EN PESOS',nro_cuenta:'',cbu:'',
+      saldo_anterior:{fecha:'',monto:0},movimientos:[],saldo_actual:0},
+    cta_cte_esp_pj:{nombre_cuenta:'CCTE ESP PJ S/I S PRI PESOS',nro_cuenta:'',cbu:'',
+      saldo_anterior:{fecha:'',monto:0},movimientos:[],saldo_actual:0}
+  };
 
-  function makeSheet(account) {
-    if (!account) return null;
-    const ws = {};
-    let r = 0;
+  var cols=null, acc=null;
 
-    const cell = (row, col, val, style, fmt) => {
-      if (val === null || val === undefined) return;
-      const ref = XLSX.utils.encode_cell({ r:row, c:col });
-      ws[ref] = { v:val, t: typeof val === 'number' ? 'n' : 's' };
-      if (fmt)   ws[ref].z = fmt;
-      if (style) ws[ref].s = style;
+  for(var p=1;p<=pdf.numPages;p++){
+    var page=await pdf.getPage(p);
+    var content=await page.getTextContent();
+    var rows=groupByY(content.items);
+
+    for(var ri=0;ri<rows.length;ri++){
+      var row=rows[ri];
+      var rt=rowTxt(row);
+
+      // ── Cabecera CUENTA CORRIENTE ──
+      if(rt.indexOf('CUENTA CORRIENTE EN PESOS')>=0&&rt.indexOf('SUBCTA')>=0){
+        acc='cc'; cols=null;
+        var nm=rt.match(/(\d{9,10})\s+SUBCTA/);
+        var cb=rt.match(/CBU:\s*([\d\s]+)/);
+        if(nm)res.cuenta_corriente.nro_cuenta=nm[1]+' SUBCTA 0 SUC 336';
+        if(cb)res.cuenta_corriente.cbu=cb[1].replace(/\s+/g,'').replace(/^(\d{8})(\d+)$/,'$1 $2');
+        continue;
+      }
+
+      // ── Cabecera CTA CTE ESP ──
+      if((rt.indexOf('CCTE ESP PJ')>=0||rt.indexOf('CTA CTE ESP')>=0)&&rt.indexOf('SUBCTA')>=0){
+        acc='esp'; cols=null;
+        var nm2=rt.match(/(\d{9,10})\s+SUBCTA/);
+        var cb2=rt.match(/CBU:\s*([\d\s]+)/);
+        if(nm2)res.cta_cte_esp_pj.nro_cuenta=nm2[1]+' SUBCTA 0 SUC 336';
+        if(cb2)res.cta_cte_esp_pj.cbu=cb2[1].replace(/\s+/g,'').replace(/^(\d{8})(\d+)$/,'$1 $2');
+        continue;
+      }
+
+      // ── Fila de columnas → detectar posiciones ──
+      if(rt.indexOf('DEBITOS')>=0&&rt.indexOf('CREDITOS')>=0){
+        var c=detectCols(row);
+        if(c)cols=c;
+        continue;
+      }
+
+      if(!acc||!cols)continue;
+      var target=acc==='cc'?res.cuenta_corriente:res.cta_cte_esp_pj;
+
+      // ── SALDO ANTERIOR ──
+      if(rt.replace(/\s+/g,' ').indexOf('SALDO ANTERIOR')>=0){
+        var di=row.find(function(i){return isDate(i.text);});
+        if(di)target.saldo_anterior.fecha=di.text;
+        target.saldo_anterior.monto=rightmostAmount(row);
+        continue;
+      }
+
+      // ── SALDO ACTUAL ──
+      if(rt.replace(/\s+/g,' ').indexOf('SALDO ACTUAL')>=0){
+        target.saldo_actual=rightmostAmount(row);
+        continue;
+      }
+
+      // ── Movimiento ──
+      if(row.length&&isDate(row[0].text)){
+        var m=parseMov(row,cols);
+        if(m)target.movimientos.push(m);
+      }
+    }
+  }
+  return res;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GENERADOR EXCEL
+// ═══════════════════════════════════════════════════════════════
+
+function genExcel(result){
+  var wb=XLSX.utils.book_new(),FMT='#,##0.00';
+  function sheet(acc){
+    if(!acc)return null;
+    var ws={},r=0;
+    var cell=function(row,col,val,s,fmt){
+      if(val===null||val===undefined)return;
+      var ref=XLSX.utils.encode_cell({r:row,c:col});
+      ws[ref]={v:val,t:typeof val==='number'?'n':'s'};
+      if(fmt)ws[ref].z=fmt; if(s)ws[ref].s=s;
     };
+    var NH={fill:{patternType:'solid',fgColor:{rgb:'0D2240'}},font:{bold:true,color:{rgb:'FFFFFF'},sz:12}};
+    var BH={fill:{patternType:'solid',fgColor:{rgb:'1B5FAD'}},font:{bold:true,color:{rgb:'FFFFFF'}}};
+    var BO={font:{bold:true}};
+    var MU={font:{italic:true,color:{rgb:'888888'}}};
+    var YE={fill:{patternType:'solid',fgColor:{rgb:'FFFF00'}}};
+    var YB={fill:{patternType:'solid',fgColor:{rgb:'FFFF00'}},font:{bold:true}};
 
-    const NAVY_HDR = { fill:{patternType:'solid',fgColor:{rgb:'0D2240'}}, font:{bold:true,color:{rgb:'FFFFFF'},sz:12} };
-    const BLUE_HDR = { fill:{patternType:'solid',fgColor:{rgb:'1B5FAD'}}, font:{bold:true,color:{rgb:'FFFFFF'}} };
-    const BOLD     = { font:{bold:true} };
-    const MUTED    = { font:{italic:true,color:{rgb:'888888'}} };
-    const YEL      = { fill:{patternType:'solid',fgColor:{rgb:'FFFF00'}} };
-    const YEL_BOLD = { fill:{patternType:'solid',fgColor:{rgb:'FFFF00'}}, font:{bold:true} };
+    cell(r,0,acc.nombre_cuenta,NH);r++;
+    cell(r,0,'N° Cuenta:',BO);cell(r,1,acc.nro_cuenta);r++;
+    cell(r,0,'CBU:',BO);cell(r,1,acc.cbu);r++;r++;
+    cell(r,0,'SALDO ANTERIOR:',BO);
+    cell(r,1,acc.saldo_anterior.fecha,MU);
+    cell(r,5,acc.saldo_anterior.monto,BO,FMT);r++;r++;
+    ['FECHA','CONCEPTO','REFER.','DÉBITOS','CRÉDITOS','SALDO'].forEach(function(h,c){cell(r,c,h,BH);});r++;
 
-    // Account header
-    cell(r, 0, account.nombre_cuenta, NAVY_HDR); r++;
-    cell(r, 0, 'N° Cuenta:',  BOLD); cell(r, 1, account.nro_cuenta); r++;
-    cell(r, 0, 'CBU:',        BOLD); cell(r, 1, account.cbu);        r++;
-    r++;
-
-    // Saldo anterior
-    cell(r, 0, 'SALDO ANTERIOR:', BOLD);
-    cell(r, 1, account.saldo_anterior?.fecha, MUTED);
-    cell(r, 5, account.saldo_anterior?.monto, BOLD, FMT);
-    r++; r++;
-
-    // Column headers
-    ['FECHA','CONCEPTO','REFER.','DÉBITOS','CRÉDITOS','SALDO'].forEach((h,c) => cell(r, c, h, BLUE_HDR));
-    r++;
-
-    // Data rows
-    let saldo = account.saldo_anterior?.monto ?? 0;
-    (account.movimientos || []).forEach(m => {
-      saldo = Math.round((saldo - (m.debito||0) + (m.credito||0)) * 100) / 100;
-      const disc = m.saldo_banco != null && Math.abs(m.saldo_banco - saldo) > 0.02;
-      const s = disc ? YEL : null;
-      cell(r, 0, m.fecha,       s);
-      cell(r, 1, m.concepto,    s);
-      cell(r, 2, m.refer || '', s);
-      if (m.debito  != null) cell(r, 3, m.debito,  s, FMT);
-      if (m.credito != null) cell(r, 4, m.credito, s, FMT);
-      cell(r, 5, saldo, s, FMT);
-      r++;
-    });
-
-    r++;
-
-    // Saldo actual
-    const discFinal = Math.abs((account.saldo_actual ?? 0) - saldo) > 0.02;
-    cell(r, 0, 'SALDO ACTUAL:', discFinal ? YEL_BOLD : BOLD);
-    cell(r, 5, account.saldo_actual, discFinal ? YEL_BOLD : BOLD, FMT);
-
-    ws['!ref']  = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r,c:5} });
-    ws['!cols'] = [{wch:12},{wch:46},{wch:14},{wch:18},{wch:18},{wch:20}];
+    var saldo=acc.saldo_anterior.monto||0;
+    acc.movimientos.forEach(function(m){
+      saldo=Math.round((saldo-(m.debito||0)+(m.credito||0))*100)/100;
+      var disc=m.saldo_banco!=null&&Math.abs(m.saldo_banco-saldo)>0.02;
+      var s=disc?YE:null;
+      cell(r,0,m.fecha,s);cell(r,1,m.concepto,s);cell(r,2,m.refer||'',s);
+      if(m.debito!=null)cell(r,3,m.debito,s,FMT);
+      if(m.credito!=null)cell(r,4,m.credito,s,FMT);
+      cell(r,5,saldo,s,FMT);r++;
+    });r++;
+    var dF=Math.abs((acc.saldo_actual||0)-saldo)>0.02;
+    cell(r,0,'SALDO ACTUAL:',dF?YB:BO);cell(r,5,acc.saldo_actual,dF?YB:BO,FMT);
+    ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r,c:5}});
+    ws['!cols']=[{wch:12},{wch:46},{wch:14},{wch:18},{wch:18},{wch:20}];
     return ws;
   }
-
-  const ws1 = makeSheet(S.result.cuenta_corriente);
-  if (ws1) XLSX.utils.book_append_sheet(wb, ws1, 'CUENTA CORRIENTE');
-
-  const ws2 = makeSheet(S.result.cta_cte_esp_pj);
-  if (ws2) XLSX.utils.book_append_sheet(wb, ws2, 'CTA CTE ESP P/PJ');
-
-  const fecha = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, `Patagonia_${fecha}.xlsx`, { cellStyles:true });
+  var ws1=sheet(result.cuenta_corriente);
+  if(ws1)XLSX.utils.book_append_sheet(wb,ws1,'CUENTA CORRIENTE');
+  var ws2=sheet(result.cta_cte_esp_pj);
+  if(ws2)XLSX.utils.book_append_sheet(wb,ws2,'CTA CTE ESP P/PJ');
+  XLSX.writeFile(wb,'Patagonia_'+new Date().toISOString().slice(0,10)+'.xlsx',{cellStyles:true});
 }
 
-// ─── API CALL ───────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  UI
+// ═══════════════════════════════════════════════════════════════
 
-async function processFile() {
-  if (!S.file) return;
-  S.phase  = 'processing';
-  S.status = 'Leyendo el PDF...';
-  render();
+var BANKS=[
+  {id:'patagonia',name:'Patagonia / Francés',ready:true},
+  {id:'nacion',name:'Banco Nación',ready:false},
+  {id:'galicia',name:'Banco Galicia',ready:false},
+  {id:'santander',name:'Santander Río',ready:false},
+  {id:'superv',name:'Supervielle',ready:false},
+  {id:'provincia',name:'Banco Provincia',ready:false},
+  {id:'macro',name:'Banco Macro',ready:false},
+];
 
-  try {
-    const b64 = await toBase64(S.file);
-    S.status  = 'Enviando a Claude para análisis...';
-    render();
+var S={bank:'patagonia',phase:'upload',file:null,result:null,error:'',status:'',drag:false};
 
-    const resp = await fetch('/api/process', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model:      'claude-sonnet-4-20250514',
-        max_tokens: 16000,
-        system:     PROMPTS[S.bank] || PROMPTS.patagonia,
-        messages: [{ role:'user', content:[
-          { type:'document', source:{ type:'base64', media_type:'application/pdf', data:b64 } },
-          { type:'text',     text:'Extraé todos los movimientos de las dos cuentas y devolvé el JSON.' }
-        ]}]
-      })
-    });
+function fmtARS(n){return(n||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
-    S.status = 'Procesando respuesta...';
-    render();
-
-    const data = await resp.json();
-    if (data.error) throw new Error(typeof data.error === 'string' ? data.error : data.error.message);
-
-    const txt   = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('');
-    const clean = txt.replace(/```json\n?|```\n?/g,'').trim();
-    S.result = JSON.parse(clean);
-    S.phase  = 'done';
-
-  } catch(e) {
-    S.error = e.message;
-    S.phase = 'error';
-  }
-  render();
-}
-
-// ─── RENDER ─────────────────────────────────────────────────────────────────
-
-function render() {
-  const app = document.getElementById('app');
-  if (!app) return;
-
-  const cc  = S.result?.cuenta_corriente;
-  const esp = S.result?.cta_cte_esp_pj;
-  const discCC  = calcDisc(cc);
-  const discEsp = calcDisc(esp);
-  const hasDisc = discCC > 0 || discEsp > 0;
-  const finalCC  = calcFinalSaldo(cc);
-  const finalEsp = calcFinalSaldo(esp);
-
-  let h = '';
-
-  // ── Bank selector ──
-  h += `<div class="card">
-    <div class="card-title">Banco</div>
-    <div class="pills">`;
-  BANKS.forEach(b => {
-    const cls = `pill${b.id===S.bank?' active':''}${!b.ready?' pill-disabled':''}`;
-    const lbl = b.ready ? b.name : `${b.name} <small style="font-size:10px;opacity:.6">(próx.)</small>`;
-    h += `<button class="${cls}" ${b.ready?`onclick="selectBank('${b.id}')"`:'disabled'}>${lbl}</button>`;
+function calcDisc(acc){
+  if(!acc)return 0;
+  var s=acc.saldo_anterior.monto||0,c=0;
+  acc.movimientos.forEach(function(m){
+    s=Math.round((s-(m.debito||0)+(m.credito||0))*100)/100;
+    if(m.saldo_banco!=null&&Math.abs(m.saldo_banco-s)>0.02)c++;
   });
-  h += `</div></div>`;
-
-  // ── PHASE: upload / error ──
-  if (S.phase === 'upload' || S.phase === 'error') {
-    const hasFIle = !!S.file;
-    h += `<div class="card">
-      <div class="card-title">Archivo PDF</div>
-      <div class="dropzone${hasFIle?' file-selected':''}${S.dragging?' drag':''}" id="dz" onclick="triggerFile()">
-        <div class="dropzone-icon">${hasFIle ? '✅' : '📄'}</div>`;
-
-    if (hasFIle) {
-      h += `<p class="file-name">${S.file.name}</p>
-            <p class="file-meta">${(S.file.size/1024).toFixed(0)} KB · Hacé clic para cambiar</p>`;
-    } else {
-      h += `<p class="dropzone-text">Arrastrá tu PDF acá o hacé clic para seleccionar</p>
-            <p class="dropzone-hint">Solo archivos PDF del resumen bancario</p>`;
-    }
-    h += `</div></div>`;
-
-    if (S.phase === 'error') {
-      h += `<div class="alert alert-err">❌ ${S.error}</div>`;
-    }
-
-    if (hasFIle) {
-      h += `<button class="btn btn-primary" onclick="processFile()">Procesar PDF →</button>`;
-    }
-  }
-
-  // ── PHASE: processing ──
-  if (S.phase === 'processing') {
-    h += `<div class="card"><div class="processing">
-      <div class="spinner"></div>
-      <p class="proc-label">${S.status}</p>
-      <p class="proc-sub">Puede demorar entre 15 y 40 segundos según el tamaño del PDF</p>
-    </div></div>`;
-  }
-
-  // ── PHASE: done ──
-  if (S.phase === 'done' && S.result) {
-    // Stats
-    h += `<div class="stats-grid">`;
-    h += statCard('Cuenta Corriente', cc?.movimientos?.length??0, cc?.saldo_actual, discCC);
-    h += statCard('CTA CTE ESP P/PJ', esp?.movimientos?.length??0, esp?.saldo_actual, discEsp);
-    h += `</div>`;
-
-    // Verification
-    h += `<div class="checks">`;
-    h += checkRow(cc,  'Cuenta Corriente',  finalCC);
-    h += checkRow(esp, 'CTA CTE ESP P/PJ',  finalEsp);
-    h += `</div>`;
-
-    if (hasDisc) {
-      h += `<div class="alert alert-warn">⚠ Hay discrepancias entre el saldo calculado y el saldo del banco. Las filas afectadas están marcadas en <strong>amarillo</strong> en el Excel.</div>`;
-    } else {
-      h += `<div class="alert alert-ok">✓ Todos los saldos cuadran correctamente.</div>`;
-    }
-
-    h += `<button class="btn btn-download" onclick="generateExcel()" ${!window.XLSX?'disabled':''}>
-      ⬇ Descargar Excel
-    </button>`;
-    h += `<div class="gap"></div>`;
-    h += `<button class="btn btn-secondary" onclick="resetApp()">Procesar otro PDF</button>`;
-  }
-
-  app.innerHTML = h;
-  attachDZ();
+  return c;
+}
+function calcFinal(acc){
+  if(!acc)return 0;
+  var s=acc.saldo_anterior.monto||0;
+  acc.movimientos.forEach(function(m){s=Math.round((s-(m.debito||0)+(m.credito||0))*100)/100;});
+  return s;
 }
 
-function statCard(label, movs, saldoActual, disc) {
-  const warnHTML = disc > 0
-    ? `<p class="stat-warn">⚠ ${disc} discrepancia${disc>1?'s':''}</p>`
-    : `<p class="stat-ok">✓ Sin discrepancias</p>`;
-  return `<div class="stat">
-    <p class="stat-label">${label}</p>
-    <p class="stat-val">${movs} <span style="font-size:14px;font-weight:400;color:var(--muted)">mov.</span></p>
-    <p class="stat-sub">Saldo: $${fmtARS(saldoActual)}</p>
-    ${warnHTML}
-  </div>`;
-}
+function render(){
+  var app=document.getElementById('app');if(!app)return;
+  var cc=S.result&&S.result.cuenta_corriente;
+  var esp=S.result&&S.result.cta_cte_esp_pj;
+  var dCC=calcDisc(cc),dE=calcDisc(esp);
+  var fCC=calcFinal(cc),fE=calcFinal(esp);
+  var h='';
 
-function checkRow(account, label, calculado) {
-  if (!account) return '';
-  const actual = account.saldo_actual ?? 0;
-  const ok     = Math.abs(actual - calculado) <= 0.02;
-  const ico    = ok ? '✅' : '⚠️';
-  const txt    = ok
-    ? `${label}: saldo calculado = saldo actual <span>($${fmtARS(actual)})</span>`
-    : `${label}: calculado $${fmtARS(calculado)} ≠ banco $${fmtARS(actual)} — <strong>diferencia: $${fmtARS(Math.abs(actual-calculado))}</strong>`;
-  return `<div class="check-row"><span class="check-ico">${ico}</span><span class="check-text">${txt}</span></div>`;
-}
+  // Banco pills
+  h+='<div class="card"><div class="card-title">Banco</div><div class="pills">';
+  BANKS.forEach(function(b){
+    var cls='pill'+(b.id===S.bank?' active':'');
+    var lbl=b.ready?b.name:b.name+' <small style="font-size:10px;opacity:.6">(próx.)</small>';
+    h+='<button class="'+cls+'" '+(b.ready?'onclick="selBank(\''+b.id+'\')"':'disabled')+'>'+lbl+'</button>';
+  });
+  h+='</div></div>';
 
-// ─── EVENTS ─────────────────────────────────────────────────────────────────
-
-let fi = null;
-function triggerFile() {
-  if (!fi) {
-    fi = document.createElement('input');
-    fi.type   = 'file';
-    fi.accept = '.pdf';
-    fi.onchange = e => {
-      const f = e.target.files[0];
-      if (f?.type === 'application/pdf') { S.file = f; S.phase = 'upload'; render(); }
-    };
+  // Upload
+  if(S.phase==='upload'||S.phase==='error'){
+    var hf=!!S.file;
+    h+='<div class="card"><div class="card-title">Archivo PDF</div>';
+    h+='<div class="dz'+(hf?' has':'')+(S.drag?' drag':'')+'" id="dz" onclick="trigFile()">';
+    h+='<div class="dz-ico">'+(hf?'✅':'📄')+'</div>';
+    if(hf)h+='<p class="fname">'+S.file.name+'</p><p class="fmeta">'+Math.round(S.file.size/1024)+' KB · Hacé clic para cambiar</p>';
+    else h+='<p class="dz-txt">Arrastrá tu PDF acá o hacé clic para seleccionar</p><p class="dz-hint">Solo archivos PDF del resumen bancario</p>';
+    h+='</div></div>';
+    if(S.phase==='error')h+='<div class="alert a-err">❌ '+S.error+'</div>';
+    if(hf)h+='<button class="btn btn-p" onclick="procesar()">Procesar PDF →</button>';
   }
+
+  // Processing
+  if(S.phase==='processing'){
+    h+='<div class="card"><div class="proc"><div class="spin"></div>';
+    h+='<p class="proc-lbl">'+S.status+'</p>';
+    h+='<p class="proc-sub">Procesando completamente en tu navegador, sin enviar datos a ningún servidor</p>';
+    h+='</div></div>';
+  }
+
+  // Done
+  if(S.phase==='done'&&S.result){
+    h+='<div class="sg">';
+    h+=stCard('Cuenta Corriente',cc.movimientos.length,cc.saldo_actual,dCC);
+    h+=stCard('CTA CTE ESP P/PJ',esp.movimientos.length,esp.saldo_actual,dE);
+    h+='</div>';
+    h+='<div class="chks">'+chkRow(cc,'Cuenta Corriente',fCC)+chkRow(esp,'CTA CTE ESP P/PJ',fE)+'</div>';
+    var hasDisc=dCC>0||dE>0;
+    if(hasDisc)h+='<div class="alert a-warn">⚠ Hay discrepancias entre el saldo calculado y el del banco. Las filas afectadas están en <strong>amarillo</strong> en el Excel.</div>';
+    else h+='<div class="alert a-ok">✓ Todos los saldos cuadran perfectamente.</div>';
+    h+='<button class="btn btn-d" onclick="descargar()">⬇ Descargar Excel</button>';
+    h+='<div class="gap"></div><button class="btn btn-s" onclick="reset()">Procesar otro PDF</button>';
+  }
+
+  app.innerHTML=h; attachDZ();
+}
+
+function stCard(lbl,movs,saldo,disc){
+  var w=disc>0?'<p class="st-warn">⚠ '+disc+' discrepancia'+(disc>1?'s':'')+'</p>':'<p class="st-ok">✓ Sin discrepancias</p>';
+  return'<div class="st"><p class="st-lbl">'+lbl+'</p><p class="st-val">'+movs+' <span style="font-size:14px;font-weight:400;color:var(--muted)">mov.</span></p><p class="st-sub">Saldo: $'+fmtARS(saldo)+'</p>'+w+'</div>';
+}
+function chkRow(acc,lbl,calc){
+  if(!acc)return'';
+  var actual=acc.saldo_actual||0,ok=Math.abs(actual-calc)<=0.02;
+  var txt=ok?lbl+': saldo calculado = saldo actual <span style="color:var(--muted)">($'+fmtARS(actual)+')</span>':lbl+': calculado $'+fmtARS(calc)+' ≠ banco $'+fmtARS(actual)+' — <strong>diferencia $'+fmtARS(Math.abs(actual-calc))+'</strong>';
+  return'<div class="chk"><span class="chk-ico">'+(ok?'✅':'⚠️')+'</span><span>'+txt+'</span></div>';
+}
+
+async function procesar(){
+  if(!S.file)return;
+  S.phase='processing'; S.status='Leyendo el PDF...'; render();
+  try{
+    S.status='Extrayendo movimientos...'; render();
+    var result=await parsePDF(S.file);
+    var cc=result.cuenta_corriente,esp=result.cta_cte_esp_pj;
+    if(!cc.movimientos.length&&!esp.movimientos.length)
+      throw new Error('No se encontraron movimientos. Verificá que el PDF sea del Banco Patagonia.');
+    S.result=result; S.phase='done';
+  }catch(e){S.error=e.message;S.phase='error';}
+  render();
+}
+
+var fi=null;
+function trigFile(){
+  if(!fi){fi=document.createElement('input');fi.type='file';fi.accept='.pdf';
+    fi.onchange=function(e){var f=e.target.files[0];if(f&&f.type==='application/pdf'){S.file=f;S.phase='upload';render();}};}
   fi.click();
 }
-
-function attachDZ() {
-  const dz = document.getElementById('dz');
-  if (!dz) return;
-  dz.addEventListener('dragover', e => { e.preventDefault(); S.dragging=true;  render(); });
-  dz.addEventListener('dragleave',  () => {                   S.dragging=false; render(); });
-  dz.addEventListener('drop', e => {
-    e.preventDefault(); S.dragging = false;
-    const f = e.dataTransfer.files[0];
-    if (f?.type === 'application/pdf') { S.file = f; render(); }
-  });
+function attachDZ(){
+  var dz=document.getElementById('dz');if(!dz)return;
+  dz.addEventListener('dragover',function(e){e.preventDefault();S.drag=true;render();});
+  dz.addEventListener('dragleave',function(){S.drag=false;render();});
+  dz.addEventListener('drop',function(e){e.preventDefault();S.drag=false;var f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf'){S.file=f;render();}});
 }
-
-window.selectBank  = id => { S.bank = id; render(); };
-window.processFile = processFile;
-window.generateExcel = generateExcel;
-window.resetApp    = () => { S.phase='upload'; S.file=null; S.result=null; S.error=''; render(); };
-
+window.selBank=function(id){S.bank=id;render();};
+window.procesar=procesar;
+window.descargar=function(){genExcel(S.result);};
+window.reset=function(){S.phase='upload';S.file=null;S.result=null;S.error='';render();};
 render();
 </script>
 </body>
